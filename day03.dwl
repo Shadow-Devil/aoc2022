@@ -1,22 +1,23 @@
+
 %dw 2.0
 output application/json
 import * from dw::core::Strings
 import * from dw::core::Arrays
+import * from dw::Runtime
 
-fun toChars(str: String): Array<String> = str splitBy ""
+var alphabet: Array<String> = "-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" splitBy ""
+var parsed = lines(payload) map ($ splitBy "")
 
-var alphabet: Array<String> = toChars("-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-var parsed: Array<Array<String>> = lines(payload) map toChars($)
-
-fun solveLine(first: Array<String>, others: Array<Array<String>>): Number = 
-    (first firstWith (firstItem) -> others every ($ contains firstItem)) match {
-        case is String -> alphabet indexOf $
-        case is Null -> ???
+fun calcScore(first: Array<String>, others: Array<Array<String>>): Number = 
+    (first firstWith (arr) -> others every ($ contains arr)) match {
+        case found is String -> alphabet indexOf found
+        case is Null -> fail("No duplicate found")
     }
 
-fun halve(array: Array<String>): Pair<Array<String>, Array<String>> = array splitAt (sizeOf(array) / 2)
+
+fun halve(array) = array splitAt (sizeOf(array) / 2)
 ---
 {
-    part1: parsed map (halve($) then solveLine($.l, [$.r])) then sum($),
-    part2: parsed divideBy 3 map solveLine($[0], $ drop 1) then sum($)
+    part1: parsed map (halve($) then calcScore($.l, [$.r])) then sum($),
+    part2: parsed divideBy 3 map calcScore($[0], $ drop 1) then sum($)
 }
