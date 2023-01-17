@@ -9,7 +9,7 @@ var alphabet: Array<String> = toChars("-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN
 var parsed: Array<Array<String>> = lines(payload) map toChars($)
 
 fun solveLine(first: Array<String>, others: Array<Array<String>>): Number = 
-    (first firstWith (arr) -> others every ($ contains arr)) match {
+    (first firstWith (firstItem) -> others every ($ contains firstItem)) match {
         case is String -> alphabet indexOf $
         case is Null -> ???
     }
