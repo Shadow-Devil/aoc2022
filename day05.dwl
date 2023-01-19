@@ -3,7 +3,8 @@ output application/json
 import * from dw::core::Strings
 import * from dw::core::Arrays
 
-var initial: Array<Array<String>> = payload splitBy "\n\n" 
+type State = Array<Array<String>>
+var initialState: State = payload splitBy "\n\n" 
                 then lines($[0])[0 to -2] 
                 map ($ splitBy "" divideBy 4 map $[1])
                 reduce ((item, acc = null) -> 
@@ -21,7 +22,7 @@ var moves: Array<Move> = payload splitBy "\n\n"
                     to: $[5]  as Number - 1
                 }
 
-fun simulate(state: Array<Array<String>>, move: Move, reverse = false) = do {
+fun simulate(state: State, move: Move, reverse = false): State = do {
     var moving = state[move.from] take move.amount then 
                     if (reverse) $[-1 to 0] 
                     else $
@@ -33,6 +34,6 @@ fun simulate(state: Array<Array<String>>, move: Move, reverse = false) = do {
 }
 ---
 {
-    part1: moves reduce ((move, state = initial) -> simulate(state, move, true)) map $[0] joinBy "",
-    part2: moves reduce ((move, state = initial) -> simulate(state, move)) map $[0] joinBy "",
+    part1: moves reduce ((move, state = initialState) -> simulate(state, move, true)) map $[0] joinBy "",
+    part2: moves reduce ((move, state = initialState) -> simulate(state, move)) map $[0] joinBy "",
 }
