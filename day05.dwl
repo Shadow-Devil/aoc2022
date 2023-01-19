@@ -7,7 +7,7 @@ type State = Array<Array<String>>
 var initialState: State = payload splitBy "\n\n" 
                 then lines($[0])[0 to -2] 
                 map ($ splitBy "" divideBy 4 map $[1])
-                reduce ((item, acc = null) -> 
+                reduce ((item, acc = null) -> //convert columns to rows (transpose)
                     if (acc == null) item map [$]
                     else acc map $ + item[$$])
                 map ($ filter $ != " ")
@@ -31,6 +31,11 @@ fun simulate(state: State, move: Move, reverse = false): State = do {
         case [move.from] -> $ drop move.amount
         case [move.to] -> moving ++ $
     }
+    // or with map
+    //state map 
+    //    if ($$ == move.from) $ drop move.amount 
+    //    else if ($$ == move.to) moving ++ $ 
+    //    else $
 }
 ---
 {
