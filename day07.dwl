@@ -2,69 +2,62 @@
 output application/json
 import * from dw::core::Arrays
 import * from dw::core::Strings
-type File = {
+type File = {|
     name: String,
     size: Number
-}
+|}
 
-type Directory = {
+type Directory = {|
     path: Array<String>,
     size?: Number,
     children: Array<String | File>
-}
+|}
+
+type Context = {| rest: Array<String>, parsed: Directory |}
 
 @TailRec()
-fun ls(rest: Array<String>, parsed: Directory): {| rest: Array<String>, parsed: Directory |} = do{
-    var cur = rest[0]
-    ---
-    if(cur == null or (cur startsWith "\$")) { // end of ls
-        rest: rest,
-        parsed: parsed
-    } else if(cur startsWith "dir") ls(rest drop 1, { // found dir
-        path: parsed.path,
-        children: parsed.children << words(cur)[1]
-    }) else ls(rest drop 1, { // found file
-        path: parsed.path,
-        children: parsed.children << (words(cur) then {
-            name: $[1],
-            size: $[0] as Number
-        })
-    })
+fun ls(context: Context): Context = context.rest match {
+    case [] -> // end of ls
+        { rest: context.rest, parsed: context.parsed }
+    case [cur ~ rest] -> if (cur startsWith "\$") // end of ls
+            { rest: context.rest, parsed: context.parsed } 
+        else ls({
+            rest: rest,
+            parsed: {
+                path: context.parsed.path,
+                children: if(cur startsWith "dir") // found dir 
+                        context.parsed.children << words(cur)[1]
+                    else // found file
+                        context.parsed.children << (words(cur) then {
+                            name: $[1],
+                            size: $[0] as Number
+                        })
+            }})
 }
+
 
 @TailRec()
-fun parse(rest: Array<String>, path: Array<String> = [], parsed: Array<Directory> = []): Array<Directory> = do{
-    var cur = rest[0]
-    var dir = ls(rest drop 1, { path: path, children: [] })
-    ---
-    if(cur == null) 
-        parsed 
-    else if(cur startsWith "\$ ls") 
-        parse(dir.rest, path, parsed + dir.parsed)
-    else if (cur == "\$ cd ..")
-        parse(rest drop 1, path[0 to -2], parsed)
-    else
-        parse(rest drop 1, path + words(cur)[2], parsed)
+fun parse(rest: Array<String>, path: Array<String> = [], parsed: Array<Directory> = []): Array<Directory> = 
+rest match {
+    case [] -> parsed
+    case [current ~ newRest] -> 
+        if (current startsWith "\$ ls") 
+            ls({ rest: newRest, parsed: { path: path, children: [] } })
+            then parse($.rest, path, parsed + $.parsed)
+        else parse(
+            newRest, 
+            if (current startsWith "\$ cd ..") path[0 to -2] else path + words(current)[2], 
+            parsed
+        )
 }
 
-fun matchPaths(current: Array<String>, toCheck: Array<String>) = 
-    if(isEmpty(current)) 
-        true 
-    else if(isEmpty(toCheck)) 
-        false 
-    else if(current[0] == toCheck[0]) 
-        matchPaths(current drop 1, toCheck drop 1) 
-    else 
-        false 
 
-fun dirSizes(in: Array<Directory>): Array<Directory> = in map (cur) -> do{
-    var x = null
-    ---
-    {
-        path: log(cur.path),
-        children: cur.children,
-        size: sum(in filter (matchPaths(cur.path, $.path)) flatMap ($.children filter ($ is File) map $.size))
-    }
+fun matchPaths(current: Array<String>, toCheck: Array<String>) = current map $ == toCheck[$$] every $
+
+fun dirSizes(dirs: Array<Directory>): Array<Directory> = dirs map (cur) -> {
+    path: cur.path,
+    children: cur.children,
+    size: sum(dirs filter (matchPaths(cur.path, $.path)) flatMap ($.children filter ($ is File) map $.size))
 }
 
 var parsed = parse(lines(payload)) then dirSizes($)
